@@ -1,0 +1,1399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WolfStation: Alan Wake II - The Writer's Nightmare</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Oswald:wght@300;400;500;700&family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,900&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        dark: '#030303',
+                        panel: '#0a0a0a',
+                        horrorRed: '#8b0000',
+                        horrorRedBright: '#b30000',
+                        inkBlue: '#0a192f',
+                        typewriter: '#e0e0e0',
+                        flashlight: '#fdfbd3'
+                    },
+                    fontFamily: {
+                        noir: ['Oswald', 'sans-serif'],
+                        manuscript: ['Courier Prime', 'monospace'],
+                        title: ['Playfair Display', 'serif']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        :root {
+            --cursor-x: 50%;
+            --cursor-y: 50%;
+        }
+
+        body {
+            background-color: #030303;
+            color: #d1d1d1;
+            font-family: 'Courier Prime', monospace;
+            overflow: hidden;
+            user-select: none;
+            background-image: radial-gradient(circle at 50% 50%, #111 0%, #030303 100%);
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #050505; }
+        ::-webkit-scrollbar-thumb { background: #8b0000; border-radius: 3px; }
+
+        /* Dynamic Flashlight Overlay */
+        #flashlight-overlay {
+            pointer-events: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle 400px at var(--cursor-x) var(--cursor-y), transparent 0%, rgba(3, 3, 3, 0.85) 80%, rgba(0, 0, 0, 0.98) 100%);
+            z-index: 10;
+            transition: opacity 0.5s ease;
+        }
+
+        /* Screen Transitions */
+        .screen { display: none; }
+        .screen.active { display: flex; animation: slideUp 0.8s ease-out forwards; }
+
+        @keyframes slideUp { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .fade-in { animation: fadeIn 0.8s ease-in forwards; }
+
+        .flicker { animation: flicker 4s infinite; }
+        @keyframes flicker {
+            0%, 19.9%, 22%, 62.9%, 64%, 64.9%, 70%, 100% { opacity: 1; text-shadow: 0 0 10px rgba(139,0,0,0.8); }
+            20%, 21.9%, 63%, 63.9%, 65%, 69.9% { opacity: 0.3; text-shadow: none; }
+        }
+
+        /* Glass Panels - Dirty Mirror Effect */
+        .mind-place-panel {
+            background: linear-gradient(135deg, rgba(15, 15, 15, 0.85) 0%, rgba(5, 5, 5, 0.95) 100%);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 30px 60px rgba(0,0,0,0.9), inset 0 0 40px rgba(0,0,0,0.5);
+            border-radius: 4px;
+            position: relative;
+        }
+        
+        .mind-place-panel::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+        }
+
+        /* Buttons */
+        .btn-flashlight {
+            background: #fdfbd3;
+            color: #050505;
+            font-family: 'Oswald', sans-serif;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            box-shadow: 0 0 20px rgba(253, 251, 211, 0.4);
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            border: 1px solid #fff;
+            border-radius: 2px;
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-flashlight::after {
+            content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent);
+            transition: left 0.5s;
+        }
+        .btn-flashlight:hover::after { left: 200%; }
+        .btn-flashlight:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 0 40px rgba(253, 251, 211, 0.8);
+            background: #fff;
+        }
+        .btn-flashlight:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .btn-dark {
+            background: linear-gradient(to bottom, #1a1a1a, #0a0a0a);
+            color: #fdfbd3;
+            border: 1px solid rgba(253, 251, 211, 0.3);
+            font-family: 'Oswald', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: all 0.3s;
+        }
+        .btn-dark:hover {
+            border-color: #fdfbd3;
+            color: #fff;
+            box-shadow: 0 0 15px rgba(253, 251, 211, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .btn-red { border-color: #8b0000; color: #8b0000; background: rgba(139,0,0,0.1); }
+        .btn-red:hover { border-color: #b30000; color: #fff; background: rgba(139,0,0,0.4); box-shadow: 0 0 20px rgba(139,0,0,0.6); }
+
+        /* Follow-Up UI (Master's Insight) */
+        .followup-container { width: 100%; border-top: 1px dashed rgba(255, 255, 255, 0.1); padding-top: 1rem; margin-top: auto;}
+        .followup-btn { color: #8b0000; font-family: 'Oswald', sans-serif; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 0.15em; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 0.75rem; width: 100%; background: transparent; border: none; outline: none; }
+        .followup-btn:hover { color: #b30000; text-shadow: 0 0 15px rgba(139, 0, 0, 0.8); }
+        .followup-content { display: none; margin-top: 1.5rem; background: rgba(0, 0, 0, 0.6); padding: 2rem; border-left: 4px solid #8b0000; border-radius: 0 4px 4px 0; text-align: left; box-shadow: inset 0 0 20px rgba(0,0,0,0.8); }
+        .followup-content.active { display: block; animation: fadeIn 0.4s ease-in; }
+
+        /* Whiteboard */
+        #whiteboard-container { transition: all 0.4s ease; z-index: 9999; }
+        
+        .manuscript-bg {
+            background-color: #e3dece;
+            background-image: repeating-linear-gradient(transparent, transparent 31px, rgba(0,0,0,0.05) 31px, rgba(0,0,0,0.05) 32px);
+            color: #1a1a1a;
+        }
+
+        /* Clues & Lore */
+        .help-word { color: #b30000; font-weight: bold; cursor: pointer; border-bottom: 1px dashed #b30000; transition: all 0.2s; text-shadow: 0 0 5px rgba(139,0,0,0.4); }
+        .help-word:hover { color: #ff3333; text-shadow: 0 0 15px #ff3333; border-bottom: 1px solid #ff3333; }
+
+        .vocab-inline { color: #d4af37; font-weight: bold; border-bottom: 1px dashed #d4af37; cursor: pointer; transition: all 0.2s; }
+        .vocab-inline:hover { color: #fff; text-shadow: 0 0 10px #d4af37; border-bottom: 1px solid #fff; }
+
+        /* Match Game */
+        .match-btn.selected { border-color: #fdfbd3; box-shadow: 0 0 15px rgba(253,251,211,0.5); color: #fff; background: rgba(253,251,211,0.1); }
+        .match-btn.matched { background: rgba(139,0,0,0.2); border-color: #8b0000; color: #8b0000; pointer-events: none; opacity: 0.6; }
+        .match-btn.wrong { border-color: #e74c3c; color: #fff; animation: shake 0.4s; background: rgba(231,76,60,0.2); }
+        
+        /* Sentence Builder Game */
+        .word-bank-btn { background: #1a1a1a; border: 1px solid rgba(253,251,211,0.3); color: #fdfbd3; transition: all 0.2s; cursor: pointer; font-family: 'Courier Prime', monospace; }
+        .word-bank-btn:hover { background: #fdfbd3; color: #000; box-shadow: 0 0 15px rgba(253,251,211,0.5); }
+        .word-bank-btn.hidden-word { opacity: 0; pointer-events: none; transform: scale(0.8); }
+
+        /* Shadow Word Game */
+        .shadow-word { background: #111; color: #333; transition: all 0.3s; padding: 4px 12px; border-radius: 4px; cursor: pointer; text-shadow: 0 0 8px rgba(0,0,0,0.8); border: 1px solid #222; }
+        .shadow-word:hover { color: #fff; text-shadow: 0 0 10px #fdfbd3; background: #222; border-color: rgba(253,251,211,0.5); }
+        .shadow-word.burned { color: #fdfbd3; background: rgba(253,251,211,0.1); text-shadow: 0 0 15px rgba(253,251,211,0.8); pointer-events: none; border-color: #fdfbd3; font-weight: bold; }
+        .shadow-word.wrong { color: #e74c3c; animation: shake 0.4s; background: rgba(231,76,60,0.1); border-color: #e74c3c; text-shadow: 0 0 10px rgba(231,76,60,0.8); }
+
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+        
+        /* Layout Adjustments */
+        .nav-bar { width: 100%; max-w: 7xl; display: flex; justify-content: space-between; align-items: center; padding: 1.5rem 1rem 0 1rem; flex-shrink: 0; margin-top: auto; }
+        .content-wrapper { flex: 1; display: flex; flex-col; align-items: center; justify-center; width: 100%; padding: 2rem 0; }
+        #spiral-progress { transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1); }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col relative overflow-hidden">
+
+    <!-- FLASHLIGHT EFFECT -->
+    <div id="flashlight-overlay"></div>
+
+    <!-- GLOBAL HUD: PROGRESS SPIRAL -->
+    <div class="fixed top-0 w-full z-50 p-4 md:p-5 flex justify-between items-center bg-black/80 border-b border-white/5 backdrop-blur-md shadow-2xl">
+        <div class="flex items-center gap-4">
+            <i class="fas fa-spinner fa-spin text-horrorRed text-2xl drop-shadow-[0_0_10px_rgba(139,0,0,0.8)]"></i>
+            <span class="font-noir uppercase tracking-[0.4em] text-white text-lg hidden md:block">THE SPIRAL</span>
+        </div>
+        <div class="flex-1 max-w-2xl bg-black h-1.5 rounded-full overflow-hidden mx-6 border border-white/10">
+            <div id="spiral-progress" class="h-full bg-flashlight shadow-[0_0_15px_#fdfbd3]" style="width: 0%"></div>
+        </div>
+        <div class="flex items-center gap-4 md:gap-6">
+            <div class="hidden md:flex items-center gap-3 bg-white/5 px-4 py-1.5 rounded border border-white/10">
+                <i class="fab fa-wolf-pack-battles text-flashlight"></i>
+                <span class="font-noir text-sm text-white tracking-[0.2em]">WOLFSTATION</span>
+            </div>
+            <div class="flex items-center gap-2 md:gap-3 bg-white/5 px-3 py-1.5 rounded border border-white/10">
+                <i class="fas fa-bolt text-flashlight"></i>
+                <span id="xp-counter" class="font-noir text-lg md:text-xl text-white tracking-widest transition-transform">0 XP</span>
+            </div>
+            <button onclick="toggleLight()" class="text-white/50 hover:text-flashlight transition text-xl" title="Toggle Flashlight"><i class="fas fa-lightbulb"></i></button>
+            <button onclick="toggleFullScreen()" class="text-white/50 hover:text-white transition text-xl"><i id="fs-icon" class="fas fa-expand"></i></button>
+        </div>
+    </div>
+
+    <!-- WHITEBOARD (MIND PLACE) -->
+    <button onclick="toggleWhiteboard()" class="fixed bottom-6 right-6 z-50 bg-flashlight text-black w-14 h-14 rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(253,251,211,0.4)] hover:scale-110 transition border border-white">
+        <i class="fas fa-pen-fancy text-xl"></i>
+    </button>
+    <div id="whiteboard-container" class="fixed inset-0 opacity-0 pointer-events-none bg-black/90 backdrop-blur-md flex items-center justify-center p-8 md:p-16">
+        <div class="manuscript-bg w-full h-full max-w-5xl p-8 md:p-12 shadow-[0_0_50px_rgba(253,251,211,0.2)] font-manuscript relative rounded-sm border-2 border-gray-300 flex flex-col">
+            <div class="absolute top-6 right-6 flex gap-6">
+                <button onclick="clearWhiteboard()" class="text-gray-500 hover:text-horrorRed transition text-lg"><i class="fas fa-eraser mr-2"></i>Erase</button>
+                <button onclick="toggleWhiteboard()" class="text-gray-500 hover:text-black transition text-lg"><i class="fas fa-times text-2xl"></i></button>
+            </div>
+            <h3 class="text-xl uppercase tracking-[0.3em] text-gray-500 mb-6 border-b border-gray-400 pb-4 font-noir"><i class="fas fa-thumbtack text-horrorRed mr-2"></i> The Mind Place: Case Board</h3>
+            <textarea id="whiteboard-text" class="w-full flex-1 bg-transparent outline-none text-2xl md:text-3xl leading-relaxed resize-none text-black placeholder-gray-400" placeholder="Type clues, grammar rules, or evidence here..."></textarea>
+        </div>
+    </div>
+
+    <!-- MAIN SCREEN CONTAINER (29 PAGES) -->
+    <div id="screen-container" class="flex-1 w-full h-full pt-20 pb-8 overflow-y-auto relative z-20">
+
+        <!-- PAGE 1: TEACHER'S GUIDE -->
+        <div id="page-1" class="screen active flex-col min-h-full px-6 w-full fade-in">
+            <div class="content-wrapper flex-col justify-center">
+                <div class="max-w-6xl w-full mind-place-panel p-10 md:p-16 rounded border-l-4 border-l-horrorRed">
+                    <h2 class="font-noir text-3xl md:text-5xl text-white mb-8 tracking-[0.2em] uppercase border-b border-white/10 pb-6 flex items-center gap-4"><i class="fas fa-folder-open text-horrorRed"></i> FBI CASE FILE: THE DIRECTOR</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-10 text-xl md:text-2xl font-light font-manuscript text-gray-300">
+                        <div class="space-y-6">
+                            <p class="flex items-start gap-5 leading-relaxed"><i class="fas fa-lightbulb text-flashlight text-3xl mt-1 drop-shadow-[0_0_10px_#fdfbd3]"></i> <span><strong>Atmosphere:</strong> Keep the lights dim. Move the mouse to use the flashlight. Every word is a clue.</span></p>
+                            <p class="flex items-start gap-5 leading-relaxed"><i class="fas fa-robot text-horrorRed text-3xl mt-1 drop-shadow-[0_0_10px_#8b0000]"></i> <span><strong>AI Battle:</strong> Phase VI requires the student to write their own escape. An AI acts as the Dark Presence and responds directly to their story!</span></p>
+                        </div>
+                        <div class="space-y-6">
+                            <p class="flex items-start gap-5 leading-relaxed"><i class="fas fa-gamepad text-gray-400 text-3xl mt-1"></i> <span><strong>Freedom:</strong> The "CONTINUE" buttons are always active, so you can skip ahead if you need to.</span></p>
+                            <p class="flex items-start gap-5 leading-relaxed"><i class="fas fa-file-signature text-blue-400 text-3xl mt-1"></i> <span><strong>Grammar:</strong> Focus on "Narrative Tenses" (Past Simple, Continuous, Perfect) to understand the recap.</span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="nav-bar">
+                <div class="w-32"></div> <!-- Spacer -->
+                <button onclick="nextPage()" class="btn-dark px-10 py-4 text-xl">PROCEED TO COVER <i class="fas fa-arrow-right ml-3"></i></button>
+            </div>
+        </div>
+
+        <!-- PAGE 2: COVER -->
+        <div id="page-2" class="screen flex-col min-h-full px-6 w-full slide-up">
+            <div class="content-wrapper flex-col justify-center">
+                <div class="max-w-5xl text-center w-full">
+                    <h3 class="font-noir tracking-[0.8em] text-horrorRed mb-6 flicker text-xl drop-shadow-[0_0_10px_rgba(139,0,0,0.8)]">WOLFSTATION EXPERIENCE</h3>
+                    <h1 class="font-title text-7xl md:text-[10rem] italic font-black text-white mb-8 drop-shadow-[0_10px_20px_rgba(0,0,0,1)] leading-none">ALAN WAKE <span class="text-horrorRed drop-shadow-[0_0_30px_rgba(139,0,0,0.6)]">II</span></h1>
+                    <p class="text-xl md:text-2xl font-manuscript text-gray-400 mb-12 italic">"The story was written long before you arrived."</p>
+                    
+                    <div class="flex flex-col items-center justify-center gap-6 mb-12">
+                        <div class="flex justify-center gap-4 md:gap-8 flex-wrap">
+                            <span class="bg-black/60 border border-white/10 px-6 py-3 font-noir tracking-[0.2em] uppercase text-lg shadow-inner"><i class="fas fa-skull text-gray-400 mr-3"></i> Level: B2 / C1</span>
+                            <span class="bg-black/60 border border-white/10 px-6 py-3 font-noir tracking-[0.2em] uppercase text-lg shadow-inner"><i class="fas fa-feather text-gray-400 mr-3"></i> Narrative Tenses</span>
+                        </div>
+                        <input type="text" id="writer-name-input" placeholder="ENTER WRITER'S NAME" class="bg-black/80 border border-horrorRed/50 text-white text-center font-noir text-2xl py-4 px-8 uppercase tracking-[0.3em] focus:border-flashlight focus:outline-none focus:shadow-[0_0_15px_rgba(253,251,211,0.3)] transition-all w-full max-w-md rounded-sm mt-4" />
+                    </div>
+                </div>
+            </div>
+            <div class="nav-bar">
+                <button onclick="prevPage()" class="text-white/30 hover:text-white uppercase font-noir tracking-widest transition text-lg"><i class="fas fa-arrow-left mr-2"></i> Back</button>
+                <button onclick="wakeUp()" class="btn-flashlight px-16 md:px-20 py-6 text-xl md:text-2xl rounded-sm">WAKE UP <i class="fas fa-power-off ml-4"></i></button>
+            </div>
+        </div>
+
+        <!-- PAGE 3: WARM UP INTRO -->
+        <div id="page-3" class="screen flex-col min-h-full px-6 w-full slide-up">
+            <div class="content-wrapper flex-col justify-center text-center">
+                <h2 class="font-noir text-4xl md:text-5xl text-horrorRed mb-8 tracking-[0.3em] uppercase drop-shadow-[0_0_10px_#8b0000]">PHASE I: THE DESCENT</h2>
+                <div class="max-w-4xl w-full mind-place-panel p-16 relative overflow-hidden flex flex-col items-center">
+                    <i class="fas fa-water text-8xl text-white/5 absolute top-10 right-10"></i>
+                    <p class="text-3xl md:text-4xl text-white font-title italic leading-relaxed mb-6">"Before you dive into the past, you must look at your own reflection."</p>
+                    <p class="text-xl text-gray-400 font-noir tracking-[0.2em] uppercase">Answer the following three questions.</p>
+                </div>
+            </div>
+            <div class="nav-bar">
+                <button onclick="prevPage()" class="text-white/30 hover:text-white uppercase font-noir tracking-widest transition text-lg"><i class="fas fa-arrow-left mr-2"></i> Back</button>
+                <button onclick="nextPage()" class="btn-flashlight px-10 py-4 text-xl">APPROACH THE WATER <i class="fas fa-arrow-right ml-3"></i></button>
+            </div>
+        </div>
+
+        <!-- PAGE 4: WARM UP 1 -->
+        <div id="page-4" class="screen flex-col min-h-full px-6 w-full slide-left">
+            <div class="content-wrapper flex-col justify-center">
+                <div class="max-w-5xl mind-place-panel p-12 md:p-16 text-center w-full relative flex flex-col">
+                    <p class="text-2xl text-gray-500 mb-6 font-noir uppercase tracking-widest">Question I</p>
+                    <h3 class="font-title text-4xl md:text-6xl text-white mb-10 leading-tight">Have you ever felt like a situation was repeating itself, as if you were stuck in a <span class="text-flashlight italic">loop</span>?</h3>
+                    <p class="text-xl md:text-2xl font-manuscript text-gray-400 italic bg-black/40 inline-block px-6 py-3 border border-white/5 mx-auto mb-10">Tell your Mentor about a recurring dream or habit.</p>
+                    
+                    <div class="followup-container">
+                        <button class="followup-btn" onclick="toggleFollowUp(this)"><i class="fas fa-chevron-down"></i> Master's Follow-up</button>
+                        <div class="followup-content">
+                            <p class="text-gray-300 font-light text-xl leading-relaxed font-manuscript"><strong class="text-horrorRed font-noir uppercase tracking-widest">Ask the student:</strong> "How do you break a cycle when you feel trapped? Does it require a change in mindset, or a change in action?"</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="nav-bar">
+                <button onclick="prevPage()" class="text-white/30 hover:text-white uppercase font-noir tracking-widest transition text-lg"><i class="fas fa-arrow-left mr-2"></i> Back</button>
+                <div class="flex gap-4">
+                    <button onclick="nextPage()" class="btn-flashlight px-8 py-4 text-lg transition-all">NEXT <i class="fas fa-arrow-right ml-2"></i></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- PAGE 5: WARM UP 2 -->
+        <div id="page-5" class="screen flex-col min-h-full px-6 w-full slide-left">
+            <div class="content-wrapper flex-col justify-center">
+                <div class="max-w-5xl mind-place-panel p-12 md:p-16 text-center w-full relative flex flex-col">
+                    <p class="text-2xl text-gray-500 mb-6 font-noir uppercase tracking-widest">Question II</p>
+                    <h3 class="font-title text-4xl md:text-6xl text-white mb-10 leading-tight">If you could completely rewrite <span class="text-horrorRed italic">one event</span> from your past, what would it be?</h3>
+                    <p class="text-xl md:text-2xl font-manuscript text-gray-400 italic bg-black/40 inline-block px-6 py-3 border border-white/5 mx-auto mb-10">Think carefully. The past shapes the present.</p>
+                    
+                    <div class="followup-container">
+                        <button class="followup-btn" onclick="toggleFollowUp(this)"><i class="fas fa-chevron-down"></i> Master's Follow-up</button>
+                        <div class="followup-content">
+                            <p class="text-gray-300 font-light text-xl leading-relaxed font-manuscript"><strong class="text-horrorRed font-noir uppercase tracking-widest">Ask the student:</strong> "If you changed that event, how might your life be worse today? Is the 'butterfly effect' real?"</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="nav-bar">
+                <button onclick="prevPage()" class="text-white/30 hover:text-white uppercase font-noir tracking-widest transition text-lg"><i class="fas fa-arrow-left mr-2"></i> Back</button>
+                <div class="flex gap-4">
+                    <button onclick="nextPage()" class="btn-flashlight px-8 py-4 text-lg transition-all">NEXT <i class="fas fa-arrow-right ml-2"></i></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- PAGE 6: WARM UP 3 -->
+        <div id="page-6" class="screen flex-col min-h-full px-6 w-full slide-left">
+            <div class="content-wrapper flex-col justify-center">
+                <div class="max-w-5xl mind-place-panel p-12 md:p-16 text-center w-full relative flex flex-col">
+                    <p class="text-2xl text-gray-500 mb-6 font-noir uppercase tracking-widest">Question III</p>
+                    <h3 class="font-title text-4xl md:text-6xl text-white mb-10 leading-tight">Why do you think humans are so fascinated by <span class="text-gray-500 italic">horror stories</span> and dark mysteries?</h3>
+                    <p class="text-xl md:text-2xl font-manuscript text-gray-400 italic bg-black/40 inline-block px-6 py-3 border border-white/5 mx-auto mb-10">Do we like feeling scared when we know we are safe?</p>
+                    
+                    <div class="followup-container">
+                        <button class="followup-btn" onclick="toggleFollowUp(this)"><i class="fas fa-chevron-down"></i> Master's Follow-up</button>
+                        <div class="followup-content">
+                            <p class="text-gray-300 font-light text-xl leading-relaxed font-manuscript"><strong class="text-horrorRed font-noir uppercase tracking-widest">Ask the student:</strong> "What is the scariest movie or book you've ever experienced? Why did it affect you so much?"</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="nav-bar">
+                <button onclick="prevPage()" class="text-white/30 hover:text-white uppercase font-noir tracking-widest transition text-lg"><i class="fas fa-arrow-left mr-2"></i> Back</button>
+                <div class="flex gap-4">
+                    <button onclick="nextPage()" class="btn-flashlight px-8 py-4 text-lg transition-all">PROCEED <i class="fas fa-arrow-right ml-2"></i></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- PAGE 7: LORE INTRO -->
+        <div id="page-7" class="screen flex-col min-h-full px-6 w-full">
+            <div class="content-wrapper flex-col justify-center text-center">
+                <h2 class="font-noir text-4xl md:text-5xl text-flashlight mb-8 tracking-[0.3em] uppercase drop-shadow-[0_0_10px_#fdfbd3]">PHASE II: THE STORY SO FAR</h2>
+                <div class="max-w-4xl w-full mind-place-panel p-16 relative overflow-hidden flex flex-col items-center">
+                    <i class="fas fa-book-dead text-8xl text-white/5 absolute top-10 right-10"></i>
+                    <p class="text-3xl md:text-4xl text-white font-title italic leading-relaxed mb-6">"Before we can understand the present, we must uncover the past."</p>
+                    <p class="text-xl text-gray-400 font-noir tracking-[0.2em] uppercase">Review the FBI files to understand the Nightmare.</p>
+                </div>
+            </div>
+            <div class="nav-bar">
+                <button onclick="prevPage()" class="text-white/30 hover:text-white uppercase font-noir tracking-widest transition text-lg"><i class="fas fa-arrow-left mr-2"></i> Back</button>
+                <button onclick="nextPage()" class="btn-dark px-10 py-4 text-xl">OPEN FILES <i class="fas fa-folder-open ml-3"></i></button>
+            </div>
+        </div>
+
+        <!-- PAGE 8: LORE 1 (THE DEPARTURE) -->
+        <div id="page-8" class="screen flex-col min-h-full px-6 w-full slide-left">
+            <div class="content-wrapper flex-col justify-center">
+                <div class="max-w-6xl mind-place-panel p-12 md:p-16 relative overflow-hidden flex flex-col md:flex-row gap-10 w-full">
+                    <div class="flex-1 z-10 flex flex-col justify-center">
+                        <p class="text-flashlight font-noir uppercase tracking-widest text-lg mb-2">File 01</p>
+                        <h2 class="font-noir text-white text-4xl mb-8 tracking-[0.2em] uppercase border-b border-white/10 pb-4">THE ARRIVAL</h2>
+                        <p class="text-2xl leading-relaxed font-manuscript text-gray-300 mb-6">
+                            Thirteen years ago, a bestselling thriller author named <strong class="text-white">Alan Wake</strong> traveled to Bright Falls. While he <span class="help-word" onclick="showLoreHelp(this, 'Was Seeking', 'Looking for something over a period of time in the past.')">was seeking</span> peace for his writer's block, a dark presence had other plans.
+                        </p>
+                        <p class="text-2xl leading-relaxed font-manuscript text-gray-300">
+                            By the time he realized the danger, the lake <span class="help-word" onclick="showLoreHelp(this, 'Had Taken', 'An action completed before another past action (Past Perfect).')">had taken</span> his wife, Alice. He had to write a story to save her.
+                        </p>
+                    </div>
+                    <!-- Odin's Eye -->
+                    <div class="w-full md:w-1/3 bg-black/60 rounded border border-white/5 p-8 flex flex-col items-center justify-center text-center shadow-inner z-10">
+                        <i class="fas fa-search text-5xl text-horrorRed mb-4 animate-pulse drop-shadow-[0_0_10px_#8b0000]"></i>
+                        <h4 class="text-horrorRed font-noir uppercase tracking-[0.2em] text-lg mb-4 border-b border-horrorRed/30 pb-2 w-full">Evidence Board</h4>
+                        <p class="text-gray-400 text-base italic mb-4 font-manuscript">Click the <span class="text-horrorRed font-bold not-italic">red words</span> to reveal their definitions.</p>
+                        <div class="lore-help-box w-full min-h-[120px] flex items-center justify-center bg-black/80 rounded border border-gray-800 p-6 shadow-inner">
+                            <span class="text-gray-600 font-light font-manuscript">Awaiting selection...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="nav-bar">
+                <button onclick="prevPage()" class="text-white/30 hover:text-white uppercase font-noir tracking-widest transition text-lg"><i class="fas fa-arrow-left mr-2"></i> Back</button>
+                <button onclick="nextPage()" class="btn-dark px-10 py-4 text-xl">NEXT FILE <i class="fas fa-arrow-right ml-3"></i></button>
+            </div>
+        </div>
+
+        <!-- PAGE 9: LORE 2 (THE DARK PLACE) -->
+        <div id="page-9" class="screen flex-col min-h-full px-6 w-full slide-left">
+            <div class="content-wrapper flex-col justify-center">
+                <div class="max-w-6xl mind-place-panel p-12 md:p-16 relative overflow-hidden flex flex-col md:flex-row gap-10 w-full border-l-4 border-l-horrorRed">
+                    <div class="absolute -bottom-20 -left-20 w-80 h-80 bg-horrorRed/20 rounded-full blur-[100px] pointer-events-none"></div>
+                    <div class="flex-1 z-10 flex flex-col justify-center">
+                        <p class="text-horrorRed font-noir uppercase tracking-widest text-lg mb-2">File 02</p>
+                        <h2 class="font-noir text-white text-4xl mb-8 tracking-[0.2em] uppercase border-b border-white/10 pb-4">THE DARK PLACE</h2>
+                        <p class="text-2xl leading-relaxed font-manuscript text-gray-300 mb-6">
+                            To save Alice, Alan made a terrible sacrifice. He took her place. For 13 long years, Alan <span class="help-word" onclick="showLoreHelp(this, 'Has Been Trapped', 'An action that started in the past and continues in the present.')">has been trapped</span> in "The Dark Place"—a nightmare dimension beneath the lake.
+                        </p>
+                        <p class="text-2xl leading-relaxed font-manuscript text-gray-300">
+                            While he <span class="help-word" onclick="showLoreHelp(this, 'Was Writing', 'An ongoing action in the past (Past Continuous).')">was writing</span> stories to escape, the Darkness was twisting his words into monsters.
+                        </p>
+                    </div>
+                    <!-- Odin's Eye -->
+                    <div class="w-full md:w-1/3 bg-black/60 rounded border border-white/5 p-8 flex flex-col items-center justify-center text-center shadow-inner z-10">
+                        <i class="fas fa-search text-5xl text-horrorRed mb-4 animate-pulse drop-shadow-[0_0_10px_#8b0000]"></i>
+                        <h4 class="text-horrorRed font-noir uppercase tracking-[0.2em] text-lg mb-4 border-b border-horrorRed/30 pb-2 w-full">Evidence Board</h4>
+                        <p class="text-gray-400 text-base italic mb-4 font-manuscript">Click the <span class="text-horrorRed font-bold not-italic">red words</span>.</p>
+                        <div class="lore-help-box w-full min-h-[120px] flex items-center justify-center bg-black/80 rounded border border-gray-800 p-6 shadow-inner">
+                            <span class="text-gray-600 font-light font-manuscript">Awaiting selection...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="nav-bar">
+                <button onclick="prevPage()" class="text-white/30 hover:text-white uppercase font-noir tracking-widest transition text-lg"><i class="fas fa-arrow-left mr-2"></i> Back</button>
+                <button onclick="nextPage()" class="btn-dark px-10 py-4 text-xl">NEXT FILE <i class="fas fa-arrow-right ml-3"></i></button>
+            </div>
+        </div>
+
+        <!-- PAGE 10: LORE 3 (THE NEW HERO) -->
+        <div id="page-10" class="screen flex-col min-h-full px-6 w-full slide-left">
+            <div class="content-wrapper flex-col justify-center">
+                <div class="max-w-6xl mind-place-panel p-12 md:p-16 relative overflow-hidden flex flex-col md:flex-row gap-10 w-full border-l-4 border-l-blue-500">
+                    <div class="flex-1 z-10 flex flex-col justify-center">
+                        <p class="text-blue-500 font-noir uppercase tracking-widest text-lg mb-2">File 03</p>
+                        <h2 class="font-noir text-white text-4xl mb-8 tracking-[0.2em] uppercase border-b border-white/10 pb-4">THE RETURN</h2>
+                        <p class="text-2xl leading-relaxed font-manuscript text-gray-300 mb-6">
+                            Present day. <strong class="text-white">Saga Anderson</strong>, an FBI agent, arrives in Bright Falls. Before she understood what was happening, she <span class="help-word" onclick="showLoreHelp(this, 'Found', 'A completed action in the past (Past Simple).')">found</span> pages of a story predicting her future.
+                        </p>
+                        <p class="text-2xl leading-relaxed font-manuscript text-gray-300">
+                            Alan had written a new story to escape, but the Dark Presence had already infected it. The two stories are now colliding.
+                        </p>
+                    </div>
+                    <!-- Odin's Eye -->
+                    <div class="w-full md:w-1/3 bg-black/60 rounded border border-white/5 p-8 flex flex-col items-center justify-center text-center shadow-inner z-10">
+                        <i class="fas fa-search text-5xl text-horrorRed mb-4 animate-pulse drop-shadow-[0_0_10px_#8b0000]"></i>
+                        <h4 class="text-horrorRed font-noir uppercase tracking-[0.2em] text-lg mb-4 border-b border-horrorRed/30 pb-2 w-full">Evidence Board</h4>
+                        <p class="text-gray-400 text-base italic mb-4 font-manuscript">Click the <span class="text-horrorRed font-bold not-italic">red words</span>.</p>
+                        <div class="lore-help-box w-full min-h-[120px] flex items-center justify-center bg-black/80 rounded border border-gray-800 p-6 shadow-inner">
+                            <span class="text-gray-600 font-light font-manuscript">Awaiting selection...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="nav-bar">
+                <button onclick="prevPage()" class="text-white/30 hover:text-white uppercase font-noir tracking-widest transition text-lg"><i class="fas fa-arrow-left mr-2"></i> Back</button>
+                <button onclick="nextPage()" class="btn-flashlight px-10 py-4 text-xl">CLOSE FILES <i class="fas fa-check ml-3"></i></button>
+            </div>
+        </div>
+
+        <!-- PAGE 11: PRE-VIDEO PROMPT -->
+        <div id="page-11" class="screen flex-col min-h-full px-6 w-full slide-up">
+            <div class="content-wrapper flex-col justify-center">
+                <div class="max-w-5xl mind-place-panel p-16 md:p-20 text-center w-full relative">
+                    <i class="fas fa-video text-7xl md:text-8xl text-flashlight mb-10 drop-shadow-[0_0_30px_#fdfbd3] flicker"></i>
+                    <h2 class="font-title text-4xl md:text-5xl text-white mb-8 leading-relaxed">
+                        "Observe the sequence of <span class="text-horrorRed italic">past events</span>."
+                    </h2>
+                    <p class="text-2xl md:text-3xl font-manuscript text-gray-400 italic">How does the video jump between what Alan *was doing* and what *had happened*?</p>
+                </div>
+            </div>
+            <div class="nav-bar">
+                <button onclick="prevPage()" class="text-white/30 hover:text-white uppercase font-noir tracking-widest transition text-lg"><i class="fas fa-arrow-left mr-2"></i> Back</button>
+                <button onclick="nextPage()" class="btn-dark px-12 py-5 text-xl uppercase">I am ready to watch</button>
+            </div>
+        </div>
+
+        <!-- PAGE 12: THE VIDEO (THE VAULT) -->
+        <div id="page-12" class="screen flex-col min-h-full px-4 w-full slide-in">
+            <div class="content-wrapper flex-col justify-center">
+                <h2 class="font-noir text-4xl md:text-5xl text-white mb-8 tracking-[0.3em] text-center uppercase">PHASE III: THE RECAP</h2>
+                <div class="w-full max-w-6xl mind-place-panel p-4 shadow-[0_0_60px_rgba(139,0,0,0.3)] bg-black">
+                    <div class="relative pb-[56.25%] h-0 overflow-hidden border border-white/10 rounded">
+                        <iframe class="absolute top-0 left-0 w-full h-full" src="https://www.youtube.com/embed/k1IS7MQaSmk?rel=0" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+                    </div>
+                </div>
+            </div>
+            <div class="nav-bar">
+                <button onclick="prevPage()" class="text-white/30 hover:text-white uppercase font-noir tracking-widest transition text-lg"><i class="fas fa-arrow-left mr-2"></i> Back</button>
+                <button onclick="nextPage()" class="btn-flashlight px-12 py-5 text-xl uppercase">I have seen enough</button>
+            </div>
+        </div>
+
+        <!-- PAGE 13: POST-VIDEO ANALYSIS 1 -->
+        <div id="page-13" class="screen flex-col min-h-full px-6 w-full slide-left">
+            <div class="content-wrapper flex-col justify-center">
+                <div class="max-w-5xl mind-place-panel p-12 md:p-16 text-center border-t-4 border-t-flashlight w-full">
+                    <i class="fas fa-brain text-6xl md:text-7xl text-flashlight mb-8 drop-shadow-[0_0_20px_#fdfbd3]"></i>
+                    <h3 class="text-3xl md:text-4xl text-white mb-10 font-manuscript leading-relaxed bg-black/40 p-8 rounded border border-white/5 shadow-inner">"I <span class="text-horrorRed font-bold">thought</span> I was saving her... but the Darkness <span class="text-horrorRed font-bold">had tricked</span> me."</h3>
+                    <p class="text-2xl md:text-3xl text-gray-400 mb-10 font-light leading-relaxed">
+                        What was Alan Wake trying to do in the first game, and what price did he pay?
+                    </p>
+                    
+                    <div class="followup-container text-left flex flex-col">
+                        <button class="followup-btn text-flashlight hover:text-white" onclick="toggleFollowUp(this)"><i class="fas fa-chevron-down"></i> Deepen the Nightmare</button>
+                        <div class="followup-content border-l-flashlight">
+                            <p class="text-gray-300 font-light text-xl leading-relaxed font-manuscript"><strong class="text-flashlight font-noir uppercase tracking-widest">Ask the student:</strong> "If you had to sacrifice yourself to the Dark Place to save someone you love, would you do it?"</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="nav-bar">
+                <button onclick="prevPage()" class="text-white/30 hover:text-white uppercase font-noir tracking-widest transition text-lg"><i class="fas fa-arrow-left mr-2"></i> Back</button>
+                <button onclick="nextPage()" class="btn-flashlight px-10 py-4 text-xl transition-all">NEXT <i class="fas fa-arrow-right ml-3"></i></button>
+            </div>
+        </div>
+
+        <!-- PAGE 14: POST-VIDEO ANALYSIS 2 -->
+        <div id="page-14" class="screen flex-col min-h-full px-6 w-full slide-left">
+            <div class="content-wrapper flex-col justify-center">
+                <div class="max-w-5xl mind-place-panel p-12 md:p-16 text-center border-t-4 border-t-horrorRed w-full">
+                    <i class="fas fa-mask text-6xl md:text-7xl text-horrorRed mb-8 drop-shadow-[0_0_20px_#8b0000]"></i>
+                    <h3 class="text-3xl md:text-4xl text-white mb-10 font-manuscript leading-relaxed bg-black/40 p-8 rounded border border-white/5 shadow-inner">"He <span class="text-horrorRed font-bold">was writing</span> a new story while Saga <span class="text-horrorRed font-bold">was arriving</span> in Bright Falls."</h3>
+                    <p class="text-2xl md:text-3xl text-gray-400 mb-10 font-light leading-relaxed">
+                        Why is Saga Anderson important in this new story? How are their lives connected now?
+                    </p>
+                    
+                    <div class="followup-container text-left flex flex-col">
+                        <button class="followup-btn text-horrorRed hover:text-white" onclick="toggleFollowUp(this)"><i class="fas fa-chevron-down"></i> Master's Insight</button>
+                        <div class="followup-content border-l-horrorRed">
+                            <p class="text-gray-300 font-light text-xl leading-relaxed font-manuscript"><strong class="text-horrorRed font-noir uppercase tracking-widest">Ask the student:</strong> "Do you think Alan created Saga in his story, or was she a real person pulled into his nightmare?"</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="nav-bar">
+                <button onclick="prevPage()" class="text-white/30 hover:text-white uppercase font-noir tracking-widest transition text-lg"><i class="fas fa-arrow-left mr-2"></i> Back</button>
+                <button onclick="nextPage()" class="btn-flashlight px-10 py-4 text-xl transition-all">ENTER SCRIPT <i class="fas fa-scroll ml-3"></i></button>
+            </div>
+        </div>
+
+        <!-- PAGE 15: SCRIPT ANALYSIS (NARRATIVE TENSES) -->
+        <div id="page-15" class="screen flex-col min-h-full px-6 w-full slide-up">
+            <div class="content-wrapper flex-col justify-center">
+                <h2 class="font-noir text-4xl md:text-5xl text-flashlight mb-10 tracking-[0.3em] uppercase drop-shadow-[0_0_15px_rgba(253,251,211,0.4)] text-center">PHASE IV: THE MANUSCRIPT</h2>
+                <p class="text-xl md:text-2xl text-gray-400 mb-8 font-manuscript text-center">Click the <span class="text-blue-400 font-bold">blue verbs</span> to reveal the narrative tenses.</p>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 max-w-7xl w-full">
+                    <!-- Manuscript -->
+                    <div class="bg-[#e3dece] p-10 md:p-12 text-black shadow-2xl relative rotate-1 rounded-sm border border-gray-400">
+                        <div class="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/natural-paper.png')] opacity-40 pointer-events-none"></div>
+                        <p class="text-gray-600 text-sm uppercase mb-8 border-b border-black/20 pb-3 font-noir tracking-widest font-bold"><i class="fas fa-typewriter mr-2"></i> Initiation - Chapter 1</p>
+                        <p class="text-2xl md:text-3xl leading-[1.8em] md:leading-[2em] font-manuscript text-gray-900">
+                            Alan <span class="text-blue-700 font-bold underline cursor-pointer" onclick="showScriptGrammar('past')">stood</span> at the edge of the lake. He <span class="text-blue-700 font-bold underline cursor-pointer" onclick="showScriptGrammar('perfect')">had lost</span> everything. 
+                            While the police <span class="text-blue-700 font-bold underline cursor-pointer" onclick="showScriptGrammar('continuous')">were searching</span> the woods, he finally understood the truth. 
+                            He <span class="text-blue-700 font-bold underline cursor-pointer" onclick="showScriptGrammar('perfect')">had written</span> this nightmare himself.
+                        </p>
+                    </div>
+                    <!-- Analyzer -->
+                    <div class="mind-place-panel p-10 flex flex-col items-center justify-center text-center shadow-[inset_0_0_50px_rgba(0,0,0,0.8)]">
+                        <div id="script-analyzer" class="w-full flex flex-col items-center">
+                            <i class="fas fa-search-plus text-6xl md:text-7xl text-gray-700 mb-8 animate-pulse"></i>
+                            <h3 class="text-2xl md:text-3xl font-noir text-gray-500 mb-4 uppercase tracking-widest">Analyze the Tense</h3>
+                            <p class="text-xl md:text-2xl text-gray-600 font-manuscript">Awaiting selection...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="nav-bar">
+                <button onclick="prevPage()" class="text-white/30 hover:text-white uppercase font-noir tracking-widest transition text-lg"><i class="fas fa-arrow-left mr-2"></i> Back</button>
+                <button onclick="nextPage()" class="btn-dark px-10 py-4 text-xl">ANALYZE GRAMMAR <i class="fas fa-arrow-right ml-3"></i></button>
+            </div>
+        </div>
+
+        <!-- PAGE 16: GRAMMAR FORGE (PAST SIMPLE & CONTINUOUS) -->
+        <div id="page-16" class="screen flex-col min-h-full px-6 w-full slide-up">
+            <div class="content-wrapper flex-col justify-center">
+                <h2 class="font-noir text-4xl md:text-5xl text-white mb-10 tracking-[0.2em] text-center uppercase">THE NARRATIVE: <span class="text-flashlight">PART I</span></h2>
+                
+                <div class="max-w-5xl mind-place-panel p-12 md:p-16 w-full border-t-4 border-t-flashlight bg-black/60 shadow-[0_0_50px_rgba(253,251,211,0.1)]">
+                    <div class="flex items-center gap-6 mb-8">
+                        <i class="fas fa-bolt text-5xl md:text-6xl text-flashlight"></i>
+                        <div>
+                            <h3 class="font-noir text-flashlight text-3xl md:text-4xl uppercase tracking-widest">PAST SIMPLE & CONTINUOUS</h3>
+                            <p class="text-xl md:text-2xl text-gray-400 font-manuscript mt-2">Setting the Scene vs. Sudden Action</p>
+                        </div>
+                    </div>
+                    
+                    <p class="text-xl md:text-2xl text-gray-300 mb-10 font-light leading-relaxed">We use <strong class="text-white">Past Continuous</strong> to set the background scene (an action in progress), and <strong class="text-white">Past Simple</strong> for the sudden action that interrupts it.</p>
+                    
+                    <div class="bg-black/80 p-8 rounded text-2xl md:text-3xl font-manuscript text-white border border-flashlight/30 shadow-inner mb-8 text-center">
+                        While Alan <strong class="text-flashlight">was typing</strong>, the shadow <strong class="text-white">broke</strong> the window.
+                    </div>
+                </div>
+            </div>
+            <div class="nav-bar">
+                <button onclick="prevPage()" class="text-white/30 hover:text-white uppercase font-noir tracking-widest transition text-lg"><i class="fas fa-arrow-left mr-2"></i> Back</button>
+                <button onclick="nextPage()" class="btn-dark px-10 py-4 text-xl">NEXT RULE <i class="fas fa-arrow-right ml-3"></i></button>
+            </div>
+        </div>
+
+        <!-- PAGE 17: GRAMMAR FORGE (PAST PERFECT) -->
+        <div id="page-17" class="screen flex-col min-h-full px-6 w-full slide-up">
+            <div class="content-wrapper flex-col justify-center">
+                <h2 class="font-noir text-4xl md:text-5xl text-white mb-10 tracking-[0.2em] text-center uppercase">THE NARRATIVE: <span class="text-horrorRed">PART II</span></h2>
+                
+                <div class="max-w-5xl mind-place-panel p-12 md:p-16 w-full border-t-4 border-t-horrorRed bg-black/60 shadow-[0_0_50px_rgba(139,0,0,0.15)]">
+                    <div class="flex items-center gap-6 mb-8">
+                        <i class="fas fa-history text-5xl md:text-6xl text-horrorRed"></i>
+                        <div>
+                            <h3 class="font-noir text-horrorRed text-3xl md:text-4xl uppercase tracking-widest">PAST PERFECT</h3>
+                            <p class="text-xl md:text-2xl text-gray-400 font-manuscript mt-2">The Past of the Past</p>
+                        </div>
+                    </div>
+                    
+                    <p class="text-xl md:text-2xl text-gray-300 mb-10 font-light leading-relaxed">Use it when you are telling a story in the past, and need to refer to an action that happened <strong class="text-white">even earlier</strong>.</p>
+                    
+                    <div class="bg-black/80 p-8 rounded text-2xl md:text-3xl font-manuscript text-white border border-horrorRed/30 shadow-inner mb-8 text-center">
+                        When Saga arrived at the cabin, Alan <strong class="text-horrorRed">had already vanished</strong>.
+                    </div>
+                    
+                    <div class="flex flex-wrap justify-center gap-4 text-lg md:text-xl text-gray-400 font-noir tracking-widest">
+                        <span>HAD + PAST PARTICIPLE (Verb 3)</span>
+                    </div>
+                </div>
+            </div>
+            <div class="nav-bar">
+                <button onclick="prevPage()" class="text-white/30 hover:text-white uppercase font-noir tracking-widest transition text-lg"><i class="fas fa-arrow-left mr-2"></i> Back</button>
+                <button onclick="nextPage()" class="btn-flashlight px-10 py-4 text-xl">TEST YOUR SANITY <i class="fas fa-arrow-right ml-3"></i></button>
+            </div>
+        </div>
+
+        <!-- PAGE 18: TRIAL I (MATCHING) -->
+        <div id="page-18" class="screen flex-col min-h-full px-6 w-full slide-left">
+            <div class="content-wrapper flex-col justify-center">
+                <h2 class="font-noir text-4xl md:text-5xl text-flashlight mb-6 text-center tracking-[0.2em] uppercase drop-shadow-[0_0_10px_rgba(253,251,211,0.4)]">TRIAL I: THE BROKEN STORY</h2>
+                <p class="text-gray-400 text-xl md:text-2xl mb-10 text-center font-manuscript">Link the pieces to form correct narrative sentences.</p>
+                
+                <div class="mind-place-panel p-8 md:p-12 w-full max-w-6xl flex flex-col md:flex-row gap-6 md:gap-10 relative bg-black/50">
+                    <div class="flex-1 flex flex-col gap-4 md:gap-6">
+                        <button class="match-btn p-4 md:p-6 text-lg md:text-2xl text-left bg-black/80 border border-white/10 rounded-sm font-manuscript" onclick="selectMatch(this, 'left', 1)">1. "While Alan was driving..."</button>
+                        <button class="match-btn p-4 md:p-6 text-lg md:text-2xl text-left bg-black/80 border border-white/10 rounded-sm font-manuscript" onclick="selectMatch(this, 'left', 2)">2. "Before Saga arrived..."</button>
+                        <button class="match-btn p-4 md:p-6 text-lg md:text-2xl text-left bg-black/80 border border-white/10 rounded-sm font-manuscript" onclick="selectMatch(this, 'left', 3)">3. "When the lights went out..."</button>
+                    </div>
+                    <!-- Link icon center -->
+                    <div class="hidden md:flex flex-col items-center justify-center opacity-30">
+                        <i class="fas fa-link text-5xl"></i>
+                    </div>
+                    <div class="flex-1 flex flex-col gap-4 md:gap-6">
+                        <button class="match-btn p-4 md:p-6 text-lg md:text-2xl text-right bg-black/80 border border-white/10 rounded-sm font-manuscript" onclick="selectMatch(this, 'right', 3)">"...the shadow appeared."</button>
+                        <button class="match-btn p-4 md:p-6 text-lg md:text-2xl text-right bg-black/80 border border-white/10 rounded-sm font-manuscript" onclick="selectMatch(this, 'right', 1)">"...Alice was sleeping."</button>
+                        <button class="match-btn p-4 md:p-6 text-lg md:text-2xl text-right bg-black/80 border border-white/10 rounded-sm font-manuscript" onclick="selectMatch(this, 'right', 2)">"...the cult had finished the ritual."</button>
+                    </div>
+                </div>
+            </div>
+            <div class="nav-bar">
+                <button onclick="prevPage()" class="text-white/30 hover:text-white uppercase font-noir tracking-widest transition text-lg"><i class="fas fa-arrow-left mr-2"></i> Back</button>
+                <button onclick="nextPage()" class="btn-flashlight px-10 py-4 text-xl transition-all">CONTINUE <i class="fas fa-arrow-right ml-3"></i></button>
+            </div>
+        </div>
+
+        <!-- PAGE 19: TRIAL II (GRAMMAR SELECTION) -->
+        <div id="page-19" class="screen flex-col min-h-full px-6 w-full slide-left">
+            <div class="content-wrapper flex-col justify-center">
+                <div class="max-w-5xl w-full">
+                    <h2 class="font-noir text-4xl md:text-5xl text-horrorRed mb-8 text-center tracking-[0.2em] uppercase drop-shadow-[0_0_10px_rgba(139,0,0,0.5)]">TRIAL II: THE PAST OF THE PAST</h2>
+                    <div class="mind-place-panel p-10 md:p-16 w-full text-center bg-black/60 shadow-[0_0_40px_rgba(139,0,0,0.1)] border-t-4 border-t-horrorRed">
+                        <p class="text-2xl md:text-3xl text-gray-300 mb-10 font-light font-manuscript">Choose the correct tense to complete the story:</p>
+                        <div class="bg-black p-8 md:p-10 rounded border border-white/10 mb-10 shadow-inner">
+                            <p class="text-3xl md:text-4xl text-white italic font-light tracking-wide font-title">"When Alan finally woke up, he realized he ________ the manuscript."</p>
+                        </div>
+                        <div class="grid grid-cols-1 gap-6 max-w-4xl mx-auto">
+                            <button onclick="checkAnswer(this, false)" class="btn-dark py-6 text-xl md:text-2xl text-left px-8 md:px-10 rounded shadow-md font-manuscript">A) was losing</button>
+                            <button onclick="checkAnswer(this, true)" class="btn-dark py-6 text-xl md:text-2xl text-left px-8 md:px-10 rounded shadow-md font-manuscript">B) had lost</button>
+                            <button onclick="checkAnswer(this, false)" class="btn-dark py-6 text-xl md:text-2xl text-left px-8 md:px-10 rounded shadow-md font-manuscript">C) lost</button>
+                        </div>
+                        
+                        <!-- Follow-up -->
+                        <div class="followup-container text-left flex flex-col">
+                            <button class="followup-btn text-horrorRed hover:text-white" onclick="toggleFollowUp(this)"><i class="fas fa-chevron-down"></i> Grammar Check</button>
+                            <div class="followup-content border-l-horrorRed">
+                                <p class="text-gray-300 font-light text-xl leading-relaxed font-manuscript"><strong class="text-horrorRed font-noir uppercase tracking-widest">Teacher:</strong> "Why is option B the right choice here? Which action happened first?"</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="nav-bar">
+                <button onclick="prevPage()" class="text-white/30 hover:text-white uppercase font-noir tracking-widest transition text-lg"><i class="fas fa-arrow-left mr-2"></i> Back</button>
+                <button onclick="nextPage()" class="btn-flashlight px-10 py-4 text-xl transition-all">CONTINUE <i class="fas fa-arrow-right ml-3"></i></button>
+            </div>
+        </div>
+
+        <!-- PAGE 20: TRIAL III (SENTENCE BUILDER) -->
+        <div id="page-20" class="screen flex-col min-h-full px-6 w-full slide-left">
+            <div class="content-wrapper flex-col justify-center">
+                <h2 class="font-noir text-4xl md:text-5xl text-flashlight mb-6 text-center tracking-[0.2em] uppercase drop-shadow-[0_0_10px_rgba(253,251,211,0.4)]">TRIAL III: THE SCATTERED PAGES</h2>
+                <p class="text-gray-400 text-xl md:text-2xl mb-10 text-center font-manuscript">Click the words in the correct order to form a Past Perfect sentence.</p>
+                
+                <div class="mind-place-panel p-10 md:p-16 w-full max-w-6xl text-center bg-black/60 shadow-[0_0_40px_rgba(253,251,211,0.1)]">
+                    
+                    <div id="sentence-display" class="min-h-[5rem] md:min-h-[6rem] border-b-2 border-gray-600 mb-12 flex flex-wrap gap-3 md:gap-4 items-center justify-center text-3xl md:text-4xl font-manuscript text-flashlight p-4 transition-colors">
+                        <!-- Words go here -->
+                    </div>
+
+                    <div id="word-bank" class="flex flex-wrap justify-center gap-4 md:gap-6 max-w-4xl mx-auto">
+                        <button class="word-bank-btn py-3 px-6 md:py-4 md:px-8 text-xl md:text-2xl rounded shadow-md" onclick="selectWordBank(this)">By</button>
+                        <button class="word-bank-btn py-3 px-6 md:py-4 md:px-8 text-xl md:text-2xl rounded shadow-md" onclick="selectWordBank(this)">the</button>
+                        <button class="word-bank-btn py-3 px-6 md:py-4 md:px-8 text-xl md:text-2xl rounded shadow-md" onclick="selectWordBank(this)">time</button>
+                        <button class="word-bank-btn py-3 px-6 md:py-4 md:px-8 text-xl md:text-2xl rounded shadow-md" onclick="selectWordBank(this)">she</button>
+                        <button class="word-bank-btn py-3 px-6 md:py-4 md:px-8 text-xl md:text-2xl rounded shadow-md" onclick="selectWordBank(this)">arrived,</button>
+                        <button class="word-bank-btn py-3 px-6 md:py-4 md:px-8 text-xl md:text-2xl rounded shadow-md" onclick="selectWordBank(this)">he</button>
+                        <button class="word-bank-btn py-3 px-6 md:py-4 md:px-8 text-xl md:text-2xl rounded shadow-md" onclick="selectWordBank(this)">had</button>
+                        <button class="word-bank-btn py-3 px-6 md:py-4 md:px-8 text-xl md:text-2xl rounded shadow-md" onclick="selectWordBank(this)">vanished.</button>
+                    </div>
+
+                </div>
+            </div>
+            <div class="nav-bar">
+                <button onclick="prevPage()" class="text-white/30 hover:text-white uppercase font-noir tracking-widest transition text-lg"><i class="fas fa-arrow-left mr-2"></i> Back</button>
+                <button onclick="resetWordBank()" class="text-gray-500 hover:text-white uppercase font-noir tracking-widest transition text-lg"><i class="fas fa-undo mr-2"></i> Reset</button>
+                <button onclick="nextPage()" class="btn-flashlight px-10 py-4 text-xl transition-all">CONTINUE <i class="fas fa-arrow-right ml-3"></i></button>
+            </div>
+        </div>
+
+        <!-- PAGE 21: TRIAL IV (FIND THE MISTAKE) -->
+        <div id="page-21" class="screen flex-col min-h-full px-6 w-full slide-left">
+            <div class="content-wrapper flex-col justify-center">
+                <h2 class="font-noir text-4xl md:text-5xl text-horrorRed mb-6 text-center tracking-[0.2em] uppercase drop-shadow-[0_0_10px_rgba(139,0,0,0.5)]">TRIAL IV: THE DARK PRESENCE</h2>
+                <p class="text-gray-400 text-xl md:text-2xl mb-10 text-center font-manuscript">Find and banish the grammatical error in this narrative sentence.</p>
+                
+                <div class="mind-place-panel p-12 md:p-20 w-full max-w-6xl text-center bg-black/60 border-t-4 border-t-horrorRed shadow-[0_0_50px_rgba(139,0,0,0.15)] relative">
+                    
+                    <p class="text-3xl md:text-5xl leading-[2em] font-title italic text-gray-300 bg-black/80 p-12 rounded border border-white/10 shadow-inner">
+                        "While Alan <span class="shadow-word" onclick="checkShadow(this, false)">was typing</span>, the shadow <span class="shadow-word" onclick="checkShadow(this, true)" data-correct="broke">had broken</span> the window."
+                    </p>
+                    
+                    <p class="text-lg text-gray-500 mt-8 font-noir uppercase tracking-[0.3em]">Click the incorrect piece of grammar to burn it away.</p>
+                    
+                </div>
+            </div>
+            <div class="nav-bar">
+                <button onclick="prevPage()" class="text-white/30 hover:text-white uppercase font-noir tracking-widest transition text-lg"><i class="fas fa-arrow-left mr-2"></i> Back</button>
+                <button onclick="nextPage()" class="btn-flashlight px-10 py-4 text-xl transition-all">CONTINUE <i class="fas fa-arrow-right ml-3"></i></button>
+            </div>
+        </div>
+
+        <!-- PAGE 22: OPINION SPECTRUM -->
+        <div id="page-22" class="screen flex-col min-h-full px-6 w-full slide-left">
+            <div class="content-wrapper flex-col justify-center">
+                <div class="w-full max-w-6xl">
+                    <h2 class="text-4xl md:text-5xl font-noir text-flashlight mb-10 text-center tracking-[0.2em] drop-shadow-[0_0_10px_rgba(253,251,211,0.3)]">THE BALANCE OF TRUTH</h2>
+                    <div class="mind-place-panel p-12 md:p-16 w-full text-center bg-black/60 shadow-[0_0_50px_rgba(253,251,211,0.1)] relative">
+                        <i class="fas fa-balance-scale-right text-7xl text-gray-700 mb-8 absolute top-10 right-10 opacity-30 hidden md:block"></i>
+                        <p class="text-xl md:text-2xl text-gray-500 font-noir uppercase tracking-[0.3em] mb-6">Where do you stand?</p>
+                        <h3 class="text-3xl md:text-5xl text-white mb-16 font-title italic leading-tight">"Sometimes we have to lie to ourselves (or rewrite our past) in order to survive trauma."</h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 w-full font-noir uppercase tracking-widest">
+                            <button onclick="selectStance(this)" data-stance="strong-agree" class="btn-dark py-4 md:py-6 text-lg md:text-xl rounded shadow-md text-gray-400 hover:text-flashlight hover:border-flashlight">Strongly Agree</button>
+                            <button onclick="selectStance(this)" data-stance="agree" class="btn-dark py-4 md:py-6 text-lg md:text-xl rounded shadow-md text-gray-400 hover:text-flashlight hover:border-flashlight">Agree</button>
+                            <button onclick="selectStance(this)" data-stance="disagree" class="btn-dark py-4 md:py-6 text-lg md:text-xl rounded shadow-md text-gray-400 hover:text-horrorRed hover:border-horrorRed">Disagree</button>
+                            <button onclick="selectStance(this)" data-stance="strong-disagree" class="btn-dark py-4 md:py-6 text-lg md:text-xl rounded shadow-md text-gray-400 hover:text-horrorRed hover:border-horrorRed">Strongly Disagree</button>
+                        </div>
+
+                        <div id="stance-followup" class="hidden mt-12 bg-black/80 p-8 md:p-10 rounded border border-white/10 fade-in shadow-inner">
+                            <i class="fas fa-microphone-alt text-4xl text-flashlight mb-6 drop-shadow-md"></i>
+                            <p class="text-2xl md:text-3xl text-white font-manuscript leading-relaxed">You have chosen your path. <br><strong class="text-flashlight font-title text-3xl md:text-4xl mt-4 block">Defend your stance!</strong></p>
+                            <p class="text-lg md:text-xl text-gray-500 mt-4">Provide your reasoning to the Director.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="nav-bar">
+                <button onclick="prevPage()" class="text-white/30 hover:text-white uppercase font-noir tracking-widest transition text-lg"><i class="fas fa-arrow-left mr-2"></i> Back</button>
+                <button onclick="nextPage()" class="btn-flashlight px-10 py-4 text-xl transition-all">ENTER THE WRITER'S ROOM <i class="fas fa-door-open ml-3"></i></button>
+            </div>
+        </div>
+
+        <!-- PAGE 23: RPG INTRO -->
+        <div id="page-23" class="screen flex-col min-h-full px-6 w-full slide-up">
+            <div class="content-wrapper flex-col justify-center">
+                <div class="w-full max-w-6xl">
+                    <h2 class="text-5xl md:text-7xl font-title italic text-horrorRed mb-10 text-center tracking-wide drop-shadow-[0_0_25px_rgba(139,0,0,0.9)]">PHASE V: THE WRITER'S ROOM</h2>
+                    <div class="mind-place-panel p-16 md:p-20 w-full text-center border-t-4 border-t-horrorRed bg-gradient-to-b from-horrorRed/10 to-transparent shadow-[0_0_60px_rgba(139,0,0,0.2)] relative overflow-hidden">
+                        <i class="fas fa-typewriter text-9xl text-white/5 absolute -bottom-10 -right-10"></i>
+                        <p class="text-3xl md:text-4xl text-white mb-10 leading-relaxed font-manuscript">
+                            You are now the writer. You are sitting at the typewriter trying to remember how you survived.
+                        </p>
+                        <p class="text-xl md:text-2xl text-gray-400 mb-12 font-noir tracking-[0.1em] uppercase">Use your knowledge of the past to rewrite the story.</p>
+                        <button onclick="nextPage()" class="btn-red border-2 px-12 md:px-16 py-5 md:py-6 text-2xl md:text-3xl rounded shadow-[0_0_30px_rgba(139,0,0,0.5)] font-noir tracking-widest bg-black/50 hover:bg-horrorRed hover:text-white transition-all">WRITE TO SURVIVE <i class="fas fa-pen-nib ml-4"></i></button>
+                    </div>
+                </div>
+            </div>
+            <div class="nav-bar">
+                <button onclick="prevPage()" class="text-white/30 hover:text-white uppercase font-noir tracking-widest transition text-lg"><i class="fas fa-arrow-left mr-2"></i> Back</button>
+                <div class="w-32"></div>
+            </div>
+        </div>
+
+        <!-- PAGE 24: RPG NODE 1 -->
+        <div id="page-24" class="screen flex-col min-h-full px-6 w-full fade-in">
+            <div class="content-wrapper flex-col justify-center">
+                <div class="w-full max-w-7xl mind-place-panel p-0 flex flex-col md:flex-row overflow-hidden shadow-[0_0_50px_rgba(139,0,0,0.4)] border-horrorRed border-2">
+                    <div class="w-full md:w-1/3 bg-black/90 p-12 flex flex-col items-center justify-center relative shadow-[inset_0_0_30px_rgba(139,0,0,0.3)]">
+                        <div class="absolute inset-0 bg-horrorRed/20 animate-pulse pointer-events-none"></div>
+                        <div class="w-40 h-40 md:w-48 md:h-48 rounded-full border-4 border-horrorRed flex justify-center items-center bg-gray-900 z-10 shadow-[0_0_30px_rgba(139,0,0,0.8)] flicker">
+                            <i class="fas fa-door-closed text-6xl md:text-7xl text-gray-400"></i>
+                        </div>
+                        <h3 class="font-title text-3xl md:text-4xl italic text-white mt-8 z-10 drop-shadow-md">THE DOOR</h3>
+                        <p class="text-horrorRed text-xl md:text-2xl font-noir tracking-[0.3em] mt-3 z-10 drop-shadow-[0_0_8px_rgba(139,0,0,0.8)]">SPLINTERING</p>
+                    </div>
+                    <div class="w-full md:w-2/3 p-10 md:p-16 bg-black/70">
+                        <p class="text-2xl md:text-3xl text-gray-200 italic mb-10 border-l-4 border-horrorRed pl-6 md:pl-8 font-manuscript leading-relaxed">The wood cracked. A dark shadow bled into the room. <br><span class="text-gray-500 text-xl md:text-2xl mt-4 block not-italic font-noir uppercase tracking-widest">You try to remember what you did before it entered.</span></p>
+                        <h4 class="text-lg md:text-xl font-noir text-flashlight uppercase tracking-[0.3em] mb-6 drop-shadow-md">WHAT HAD HAPPENED? (Past Perfect)</h4>
+                        <div class="flex flex-col gap-4 md:gap-6">
+                            <button onclick="rpgSelect(this, 1)" class="btn-dark py-5 md:py-6 text-left px-6 md:px-10 text-xl md:text-2xl group rounded font-manuscript"><span class="text-horrorRed font-bold mr-4 font-noir">A.</span> "Before the shadow entered, I had reloaded the flare gun."</button>
+                            <button onclick="rpgSelect(this, 0)" class="btn-dark py-5 md:py-6 text-left px-6 md:px-10 text-xl md:text-2xl group rounded font-manuscript"><span class="text-horrorRed font-bold mr-4 font-noir">B.</span> "Before the shadow entered, I was reloading the flare gun."</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="nav-bar">
+                <button onclick="prevPage()" class="text-white/30 hover:text-white uppercase font-noir tracking-widest transition text-lg"><i class="fas fa-arrow-left mr-2"></i> Back</button>
+                <button onclick="nextPage()" class="btn-flashlight px-10 py-4 text-xl transition-all">KEEP WRITING <i class="fas fa-arrow-right ml-3"></i></button>
+            </div>
+        </div>
+
+        <!-- PAGE 25: RPG NODE 2 -->
+        <div id="page-25" class="screen flex-col min-h-full px-6 w-full fade-in">
+            <div class="content-wrapper flex-col justify-center">
+                <div class="w-full max-w-7xl mind-place-panel p-0 flex flex-col md:flex-row overflow-hidden shadow-[0_0_50px_rgba(253,251,211,0.2)] border-flashlight border-2">
+                    <div class="w-full md:w-1/3 bg-black/90 p-12 flex flex-col items-center justify-center relative shadow-[inset_0_0_30px_rgba(253,251,211,0.05)]">
+                        <div class="w-40 h-40 md:w-48 md:h-48 rounded-full border-4 border-flashlight flex justify-center items-center bg-gray-900 z-10 shadow-[0_0_30px_rgba(253,251,211,0.4)]">
+                            <i class="fas fa-lightbulb text-6xl md:text-7xl text-flashlight"></i>
+                        </div>
+                        <h3 class="font-title text-3xl md:text-4xl italic text-white mt-8 z-10 drop-shadow-md">THE LIGHT</h3>
+                        <p class="text-flashlight text-xl md:text-2xl font-noir tracking-[0.3em] mt-3 z-10 drop-shadow-[0_0_8px_rgba(253,251,211,0.6)]">FLICKERING</p>
+                    </div>
+                    <div class="w-full md:w-2/3 p-10 md:p-16 bg-black/70">
+                        <p class="text-2xl md:text-3xl text-gray-200 italic mb-10 border-l-4 border-flashlight pl-6 md:pl-8 font-manuscript leading-relaxed">The flare gun fired. The intense light burned the shadow. <br><span class="text-gray-500 text-xl md:text-2xl mt-4 block not-italic font-noir uppercase tracking-widest">You write your escape while it happens.</span></p>
+                        <h4 class="text-lg md:text-xl font-noir text-flashlight uppercase tracking-[0.3em] mb-6 drop-shadow-md">WHAT WERE YOU DOING? (Past Continuous)</h4>
+                        <div class="flex flex-col gap-4 md:gap-6">
+                            <button onclick="rpgSelect(this, 1)" class="btn-dark py-5 md:py-6 text-left px-6 md:px-10 text-xl md:text-2xl group rounded font-manuscript"><span class="text-flashlight font-bold mr-4 font-noir">A.</span> "While the monster was burning, I ran to the door."</button>
+                            <button onclick="rpgSelect(this, 0)" class="btn-dark py-5 md:py-6 text-left px-6 md:px-10 text-xl md:text-2xl group rounded font-manuscript"><span class="text-flashlight font-bold mr-4 font-noir">B.</span> "While the monster burned, I had run to the door."</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="nav-bar">
+                <button onclick="prevPage()" class="text-white/30 hover:text-white uppercase font-noir tracking-widest transition text-lg"><i class="fas fa-arrow-left mr-2"></i> Back</button>
+                <button onclick="nextPage()" class="btn-flashlight px-10 py-4 text-xl transition-all">THE FINAL PAGE <i class="fas fa-arrow-right ml-3"></i></button>
+            </div>
+        </div>
+
+        <!-- PAGE 26: RPG NODE 3 (SPEAKING) -->
+        <div id="page-26" class="screen flex-col min-h-full px-6 w-full fade-in">
+            <div class="content-wrapper flex-col justify-center">
+                <div class="w-full max-w-6xl">
+                    <h2 class="text-5xl md:text-6xl font-title italic text-flashlight mb-10 text-center drop-shadow-[0_0_15px_rgba(253,251,211,0.5)]">THE MANUSCRIPT IS ALMOST COMPLETE</h2>
+                    <div class="w-full mind-place-panel p-12 md:p-20 text-center border-t-4 border-t-flashlight bg-black/70 shadow-[0_0_60px_rgba(253,251,211,0.2)]">
+                        <i class="fas fa-microphone-alt text-7xl md:text-8xl text-flashlight mb-10 animate-pulse drop-shadow-[0_0_25px_rgba(253,251,211,0.9)]"></i>
+                        <p class="text-3xl md:text-4xl text-white mb-12 leading-relaxed font-manuscript">The sun broke through the window. The words were written. But they need a voice to become real.</p>
+                        <div class="bg-black/90 p-8 md:p-12 rounded border border-white/20 mb-12 shadow-inner text-left">
+                            <p class="text-2xl md:text-3xl text-flashlight font-noir uppercase mb-6 tracking-[0.2em] drop-shadow-md border-b border-white/10 pb-4"><i class="fas fa-volume-up mr-3"></i> SPEAK THE ENDING OUT LOUD!</p>
+                            <p class="text-xl md:text-2xl text-gray-300 font-manuscript leading-relaxed mb-4">Read your story aloud to the Director.</p>
+                            <p class="text-lg md:text-xl text-gray-500 font-manuscript italic">"Before the shadow entered, I had reloaded the flare gun. While the monster was burning, I ran to the door. I survived."</p>
+                        </div>
+                        <button onclick="addXP(100); nextPage()" class="btn-flashlight px-10 md:px-16 py-5 md:py-6 text-2xl md:text-3xl rounded shadow-[0_0_40px_rgba(253,251,211,0.5)]">I HAVE SPOKEN THE TRUTH <i class="fas fa-book-open ml-4"></i></button>
+                    </div>
+                </div>
+            </div>
+            <div class="nav-bar">
+                <button onclick="prevPage()" class="text-white/30 hover:text-white uppercase font-noir tracking-widest transition text-lg"><i class="fas fa-arrow-left mr-2"></i> Back</button>
+                <button onclick="nextPage()" class="btn-dark px-10 py-4 text-xl transition-all">FACE THE DARKNESS <i class="fas fa-ghost ml-3"></i></button>
+            </div>
+        </div>
+
+        <!-- PAGE 27: THE DARK PRESENCE (AI BATTLE) -->
+        <div id="page-27" class="screen flex-col min-h-full px-6 w-full slide-up">
+            <div class="content-wrapper flex-col justify-center">
+                <div class="w-full max-w-6xl">
+                    <h2 class="text-5xl md:text-7xl font-title italic text-horrorRed mb-6 text-center drop-shadow-[0_0_25px_rgba(139,0,0,0.9)]">PHASE VI: THE DARK PRESENCE</h2>
+                    <p class="text-xl text-gray-400 font-noir tracking-[0.2em] uppercase text-center mb-10">The Darkness is writing your end. Rewrite it.</p>
+                    
+                    <div class="mind-place-panel p-8 md:p-14 w-full border-t-4 border-t-horrorRed bg-black/80 shadow-[0_0_60px_rgba(139,0,0,0.5)] flex flex-col gap-8">
+                        
+                        <!-- AI Story Box -->
+                        <div class="bg-[#111] p-6 md:p-10 rounded border border-horrorRed/50 shadow-[inset_0_0_20px_rgba(0,0,0,1)]">
+                            <h3 class="font-noir text-horrorRed text-xl tracking-widest mb-4 uppercase drop-shadow-md"><i class="fas fa-pen-nib mr-2"></i> The Dark Presence writes:</h3>
+                            <div id="ai-story-container" class="min-h-[100px] flex items-center justify-center">
+                                <p id="ai-story-text" class="text-2xl md:text-3xl text-gray-300 font-manuscript leading-relaxed italic animate-pulse">Waiting for the Darkness to manifest...</p>
+                            </div>
+                        </div>
+
+                        <!-- Student Input Box -->
+                        <div class="w-full">
+                            <h3 class="font-noir text-flashlight text-xl tracking-widest mb-4 uppercase drop-shadow-md"><i class="fas fa-keyboard mr-2"></i> Rewrite reality (Use Narrative Tenses):</h3>
+                            <textarea id="student-draft" class="w-full h-32 md:h-40 bg-black/60 text-flashlight text-xl md:text-2xl font-manuscript p-6 border border-flashlight/30 rounded outline-none focus:border-flashlight shadow-inner resize-none transition-colors" placeholder="Write your escape here..."></textarea>
+                        </div>
+
+                        <div class="flex flex-col md:flex-row justify-between items-center mt-4 gap-6">
+                            <div id="ai-feedback" class="text-xl text-white font-manuscript w-full md:w-2/3 italic text-center md:text-left min-h-[3rem]"></div>
+                            <button id="submit-draft-btn" onclick="battleDarkness()" class="btn-flashlight px-10 py-5 text-xl w-full md:w-auto">SUBMIT DRAFT <i class="fas fa-bolt ml-3"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="nav-bar">
+                <button onclick="prevPage()" class="text-white/30 hover:text-white uppercase font-noir tracking-widest transition text-lg"><i class="fas fa-arrow-left mr-2"></i> Back</button>
+                <button onclick="nextPage()" class="btn-dark px-10 py-4 text-xl transition-all">ESCAPE THE DARK PLACE <i class="fas fa-door-open ml-3"></i></button>
+            </div>
+        </div>
+
+        <!-- PAGE 28: RPG ENDING -->
+        <div id="page-28" class="screen flex-col min-h-full px-6 w-full slide-up">
+            <div class="content-wrapper flex-col justify-center">
+                <div class="w-full max-w-6xl text-center flex flex-col items-center">
+                    <i class="fas fa-sun text-[10rem] md:text-[12rem] text-flashlight mb-12 drop-shadow-[0_0_80px_rgba(253,251,211,1)]"></i>
+                    <h2 class="text-7xl md:text-9xl font-title italic text-white mb-10 drop-shadow-[0_10px_10px_rgba(0,0,0,0.8)] leading-none">YOU ARE AWAKE</h2>
+                    <div class="mind-place-panel p-10 md:p-16 bg-black/60 border border-flashlight/30 mt-6 max-w-4xl w-full shadow-inner">
+                        <p class="text-2xl md:text-3xl text-gray-200 font-manuscript leading-relaxed">
+                            Your mastery of Narrative Tenses bent reality to your will. You successfully remembered the past to save your future. You have escaped the Dark Place.
+                        </p>
+                        
+                        <div class="followup-container mt-10 flex flex-col">
+                            <button class="followup-btn text-flashlight hover:text-white border-none" onclick="toggleFollowUp(this)"><i class="fas fa-chevron-down"></i> Final Reflection</button>
+                            <div class="followup-content bg-black/90 border-l-flashlight text-left w-full">
+                                <p class="text-gray-300 font-light text-xl md:text-2xl leading-relaxed font-manuscript"><strong class="text-flashlight font-noir uppercase tracking-widest">Ask the student:</strong> "Are you proud of the story you wrote today? If this lesson were a book, what would be the title?"</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="nav-bar">
+                <button onclick="prevPage()" class="text-white/30 hover:text-white uppercase font-noir tracking-widest transition text-lg"><i class="fas fa-arrow-left mr-2"></i> Back</button>
+                <button onclick="nextPage()" class="btn-flashlight px-14 py-6 text-2xl shadow-[0_0_40px_rgba(253,251,211,0.6)]">VIEW REWARDS <i class="fas fa-trophy ml-4"></i></button>
+            </div>
+        </div>
+
+        <!-- PAGE 29: MISSION COMPLETE -->
+        <div id="page-29" class="screen flex-col min-h-full px-6 w-full slide-up">
+            <div class="content-wrapper flex-col justify-center">
+                <div class="w-full max-w-6xl text-center flex flex-col items-center">
+                    <h1 class="text-5xl md:text-7xl lg:text-8xl font-noir font-black mb-12 uppercase tracking-[0.3em] text-white drop-shadow-[0_0_40px_rgba(253,251,211,0.5)]">
+                        MISSION COMPLETE
+                    </h1>
+                    
+                    <div class="mind-place-panel p-12 md:p-20 mb-16 w-full max-w-4xl border-2 border-flashlight bg-black/80 shadow-[0_0_80px_rgba(0,0,0,0.9)]">
+                        <h3 class="text-gray-400 font-noir uppercase tracking-[0.4em] md:tracking-[0.6em] text-xl md:text-2xl mb-10 drop-shadow-md">Total XP Earned</h3>
+                        <p id="final-xp" class="text-8xl md:text-[10rem] leading-none font-title italic text-flashlight font-bold drop-shadow-[0_0_40px_rgba(253,251,211,1)]">0</p>
+                        <div class="mt-16 border-t border-white/10 pt-12">
+                            <p class="text-3xl md:text-4xl text-gray-300 font-manuscript italic tracking-wide">"Your words saved us all."</p>
+                        </div>
+                    </div>
+
+                    <div class="mind-place-panel p-10 md:p-12 w-full max-w-5xl bg-black/90 border border-blue-900/50 shadow-[0_0_40px_rgba(10,25,47,0.8)] flex flex-col md:flex-row items-center gap-10 text-left">
+                        <i class="fas fa-cogs text-6xl md:text-7xl text-gray-500 drop-shadow-[0_0_15px_rgba(255,255,255,0.2)]"></i>
+                        <div>
+                            <h3 class="text-4xl font-noir text-white mb-4 tracking-widest uppercase">System Assistant</h3>
+                            <p class="text-gray-400 text-xl md:text-2xl font-manuscript leading-relaxed">"Would you like me to generate the homework for this Nightmare based on today's performance?"</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="nav-bar justify-center mt-8 mb-4">
+                <button onclick="location.reload()" class="text-gray-500 hover:text-white uppercase font-noir text-lg md:text-xl tracking-[0.4em] transition flex items-center gap-4 bg-black/60 px-10 md:px-12 py-5 md:py-6 rounded border border-gray-800 hover:border-gray-500 hover:scale-105 shadow-2xl"><i class="fas fa-redo"></i> Restart Spiral</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- FULLSCREEN ---
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => console.log(err));
+                const icon = document.getElementById('fs-icon');
+                if(icon) icon.classList.replace('fa-expand', 'fa-compress');
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                    const icon = document.getElementById('fs-icon');
+                    if(icon) icon.classList.replace('fa-compress', 'fa-expand');
+                }
+            }
+        }
+
+        // --- GLOBAL VARIABLES ---
+        let currentPage = 1;
+        const totalPages = 29;
+        let writerName = "The Writer";
+        let hasGeneratedStory = false;
+
+        function wakeUp() {
+            const nameInput = document.getElementById('writer-name-input').value.trim();
+            if (nameInput) {
+                writerName = nameInput;
+            }
+            nextPage();
+        }
+
+        // --- PAGINATION / SPIRAL PROGRESS ---
+        function updateProgress() {
+            const percentage = ((currentPage - 1) / (totalPages - 1)) * 100;
+            const progress = document.getElementById('spiral-progress');
+            if (progress) progress.style.width = percentage + '%';
+        }
+
+        function nextPage() {
+            if (currentPage < totalPages) {
+                const currentEl = document.getElementById('page-' + currentPage);
+                if(currentEl) currentEl.classList.remove('active');
+                
+                currentPage++;
+                
+                const nextEl = document.getElementById('page-' + currentPage);
+                if(nextEl) nextEl.classList.add('active');
+                
+                if (currentPage === 27 && !hasGeneratedStory) {
+                    initDarknessBattle();
+                }
+
+                updateProgress();
+                const container = document.getElementById('screen-container');
+                if(container) container.scrollTop = 0;
+            }
+        }
+
+        function prevPage() {
+            if (currentPage > 1) {
+                const currentEl = document.getElementById('page-' + currentPage);
+                if(currentEl) currentEl.classList.remove('active');
+                
+                currentPage--;
+                
+                const prevEl = document.getElementById('page-' + currentPage);
+                if(prevEl) prevEl.classList.add('active');
+                
+                updateProgress();
+                const container = document.getElementById('screen-container');
+                if(container) container.scrollTop = 0;
+            }
+        }
+
+        // --- XP SYSTEM ---
+        let xp = 0;
+        function addXP(amount) {
+            xp += amount;
+            const xpCounter = document.getElementById('xp-counter');
+            const finalXp = document.getElementById('final-xp');
+            
+            if (xpCounter) {
+                xpCounter.innerText = xp + ' XP';
+                xpCounter.classList.add('text-flashlight', 'scale-125');
+                setTimeout(() => {
+                    if (xpCounter) xpCounter.classList.remove('text-flashlight', 'scale-125');
+                }, 300);
+            }
+            if (finalXp) finalXp.innerText = xp;
+            createFloatingText(`+${amount} XP`);
+        }
+
+        function createFloatingText(text) {
+            const container = document.getElementById('screen-container');
+            if (!container) return;
+            const el = document.createElement('div');
+            el.className = 'fixed text-flashlight font-noir text-4xl md:text-5xl font-bold pointer-events-none drop-shadow-[0_0_20px_#fdfbd3] z-[100]';
+            el.innerText = text;
+            el.style.left = '50%'; el.style.top = '50%';
+            el.style.transform = 'translate(-50%, -50%)';
+            el.style.animation = 'floatUp 1.5s ease-out forwards';
+            
+            document.body.appendChild(el);
+            setTimeout(() => { if (el.parentNode) el.remove(); }, 1500);
+        }
+
+        // --- GEMINI API BATTLE (THE DARKNESS) ---
+        const apiKey = ""; 
+
+        async function fetchGemini(promptText, systemPrompt) {
+            if (!apiKey) {
+                console.warn("No API key provided. Using fallback responses.");
+                return null;
+            }
+            
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            const payload = {
+                contents: [{ parts: [{ text: promptText }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] }
+            };
+            
+            let retries = 5;
+            let delays = [1000, 2000, 4000, 8000, 16000];
+            
+            for(let i=0; i<retries; i++) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const data = await response.json();
+                    if(data.candidates && data.candidates[0]) {
+                        return data.candidates[0].content.parts[0].text;
+                    }
+                } catch (e) {
+                    if (i < retries - 1) await new Promise(r => setTimeout(r, delays[i]));
+                }
+            }
+            return null;
+        }
+
+        async function initDarknessBattle() {
+            const storyTextEl = document.getElementById('ai-story-text');
+            storyTextEl.innerHTML = '<i class="fas fa-spinner fa-spin text-horrorRed mr-3"></i> The Darkness is gathering...';
+            storyTextEl.classList.add('animate-pulse');
+
+            const prompt = `Write a 2-sentence terrifying cliffhanger about the writer named ${writerName} being trapped in a dark forest or cabin. Use past simple and past continuous tenses. Make it seem like ${writerName} is about to be caught by a monster. Do not resolve the cliffhanger.`;
+            const sys = "You are the Dark Presence, an evil entity from Alan Wake that twists stories into tragedies. Speak directly as the narrator describing the writer's doom.";
+
+            const response = await fetchGemini(prompt, sys);
+            
+            storyTextEl.classList.remove('animate-pulse');
+            if(response) {
+                storyTextEl.innerText = `"${response}"`;
+            } else {
+                // Fallback if API fails or no key
+                storyTextEl.innerText = `"While ${writerName} was desperately searching for the keys, the heavy wooden door splintered open. The shadow had finally caught them, and there was nowhere left to run."`;
+            }
+            hasGeneratedStory = true;
+        }
+
+        async function battleDarkness() {
+            const draft = document.getElementById('student-draft').value.trim();
+            const feedbackEl = document.getElementById('ai-feedback');
+            const btn = document.getElementById('submit-draft-btn');
+
+            if(!draft) {
+                feedbackEl.innerHTML = "<span class='text-horrorRed'>You must write to survive!</span>";
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> EVALUATING...';
+            feedbackEl.innerHTML = "<span class='text-gray-400'>The Darkness evaluates your words...</span>";
+
+            const prompt = `The writer ${writerName} wrote this continuation to escape your trap: "${draft}". Evaluate it. If it uses past tenses (past simple, continuous, or perfect) and makes sense to escape, admit defeat in 2 short sentences. If it's gibberish or poor grammar, consume them in 2 short sentences.`;
+            const sys = "You are the Dark Presence. Respond directly to the writer evaluating their fate based on their grammar and narrative.";
+
+            const response = await fetchGemini(prompt, sys);
+            
+            btn.innerHTML = 'SUBMIT DRAFT <i class="fas fa-bolt ml-3"></i>';
+            btn.disabled = false;
+            
+            if(response) {
+                feedbackEl.innerHTML = `<span class="${response.toLowerCase().includes('defeat') || response.toLowerCase().includes('escaped') || response.toLowerCase().includes('survived') || !response.toLowerCase().includes('consume') ? 'text-flashlight' : 'text-horrorRed'}">"${response}"</span>`;
+                addXP(150);
+            } else {
+                // Fallback if API fails or no key
+                feedbackEl.innerHTML = "<span class='text-flashlight'>The Dark Presence recoils from your words. You found a way out.</span>";
+                addXP(150);
+            }
+        }
+
+        // --- WHITEBOARD ---
+        function toggleWhiteboard() { 
+            const wb = document.getElementById('whiteboard-container');
+            if (!wb) return;
+            if (wb.classList.contains('opacity-0')) {
+                wb.classList.remove('opacity-0', 'pointer-events-none');
+            } else {
+                wb.classList.add('opacity-0', 'pointer-events-none');
+            }
+        }
+        function clearWhiteboard() { 
+            const textEl = document.getElementById('whiteboard-text');
+            if(textEl) textEl.value = ''; 
+        }
+
+        // --- FOLLOW-UP SYSTEM ---
+        function toggleFollowUp(btn) {
+            const content = btn.nextElementSibling;
+            const icon = btn.querySelector('i');
+            if (!content || !icon) return;
+            if (content.classList.contains('active')) {
+                content.classList.remove('active');
+                icon.classList.replace('fa-chevron-up', 'fa-chevron-down');
+            } else {
+                content.classList.add('active');
+                icon.classList.replace('fa-chevron-down', 'fa-chevron-up');
+                addXP(5);
+            }
+        }
+
+        // --- LORE & SCRIPT INTERACTIVITY ---
+        function showLoreHelp(element, word, definition) {
+            const screen = element.closest('.screen');
+            if (!screen) return;
+            const box = screen.querySelector('.lore-help-box');
+            if (!box) return;
+            
+            box.innerHTML = `<div class="fade-in"><span class="text-horrorRed font-noir text-2xl uppercase tracking-widest block mb-2">${word}</span><span class="text-gray-200 text-xl font-manuscript">${definition}</span></div>`;
+            box.classList.add('bg-horrorRed/10', 'border-horrorRed/50');
+            addXP(5);
+        }
+
+        const scriptGrammarNotes = {
+            'past': { title: "Past Simple", text: "Used for a completed action in the past. 'He stood at the edge.'", icon: "fa-bolt", color: "text-blue-500" },
+            'continuous': { title: "Past Continuous", text: "Used for actions that were in progress in the past. 'The police were searching...'", icon: "fa-water", color: "text-blue-500" },
+            'perfect': { title: "Past Perfect", text: "Used for an action that happened BEFORE another past action. 'He had written this nightmare.'", icon: "fa-history", color: "text-blue-500" }
+        };
+
+        function showScriptGrammar(key) {
+            document.querySelectorAll('.script-line, .vocab-inline, .text-blue-700').forEach(el => el.classList.remove('bg-white/10'));
+            if (window.event && window.event.currentTarget) window.event.currentTarget.classList.add('bg-white/10', 'rounded', 'px-1');
+            
+            const data = scriptGrammarNotes[key];
+            const analyzer = document.getElementById('script-analyzer');
+            if (analyzer && data) {
+                analyzer.innerHTML = `
+                    <i class="fas ${data.icon} text-[7rem] ${data.color} mb-8 fade-in drop-shadow-[0_0_20px_currentColor]"></i>
+                    <h3 class="text-3xl md:text-4xl font-noir text-white mb-6 uppercase tracking-widest">${data.title}</h3>
+                    <p class="text-xl md:text-2xl text-gray-300 font-manuscript leading-relaxed bg-black/60 p-6 rounded shadow-inner border border-white/10">${data.text}</p>
+                `;
+            }
+            addXP(15);
+        }
+
+        // --- MATCHING GAME ---
+        let selectedLeft = null;
+        let matchedCount = 0;
+        function selectMatch(btn, side, id) {
+            if(btn.classList.contains('matched')) return;
+
+            if(side === 'left') {
+                document.querySelectorAll('.match-btn').forEach(b => { 
+                    if(b.parentElement.classList.contains('flex-col') && !b.classList.contains('matched') && b.closest('div').previousElementSibling === null) {
+                        b.classList.remove('selected');
+                    }
+                });
+                btn.classList.add('selected');
+                selectedLeft = { btn, id };
+            } 
+            else if (side === 'right' && selectedLeft) {
+                if(selectedLeft.id === id) {
+                    btn.classList.add('matched');
+                    selectedLeft.btn.classList.remove('selected');
+                    selectedLeft.btn.classList.add('matched');
+                    selectedLeft = null;
+                    matchedCount++;
+                    addXP(30);
+                } else {
+                    btn.classList.add('wrong');
+                    selectedLeft.btn.classList.add('wrong');
+                    setTimeout(() => {
+                        btn.classList.remove('wrong');
+                        if(selectedLeft && !selectedLeft.btn.classList.contains('matched')) {
+                           selectedLeft.btn.classList.remove('wrong', 'selected');
+                        }
+                        selectedLeft = null;
+                    }, 500);
+                }
+            }
+        }
+
+        // --- SENTENCE BUILDER GAME ---
+        let selectedWords = [];
+        const targetSentence = ["By", "the", "time", "she", "arrived,", "he", "had", "vanished."];
+
+        function selectWordBank(btn) {
+            const word = btn.innerText;
+            selectedWords.push({word: word, btn: btn});
+            btn.classList.add('hidden-word');
+            renderSentence();
+            
+            let isCorrectSoFar = true;
+            for(let i=0; i<selectedWords.length; i++) {
+                if(selectedWords[i].word !== targetSentence[i]) isCorrectSoFar = false;
+            }
+
+            const display = document.getElementById('sentence-display');
+            
+            if(!isCorrectSoFar) {
+                display.classList.add('text-horrorRed', 'border-horrorRed');
+                display.classList.replace('text-flashlight', 'text-horrorRed');
+                setTimeout(() => {
+                    display.classList.remove('text-horrorRed', 'border-horrorRed');
+                    display.classList.replace('text-horrorRed', 'text-flashlight');
+                    resetWordBank();
+                }, 600);
+            } else if(selectedWords.length === targetSentence.length) {
+                display.classList.replace('text-flashlight', 'text-green-400');
+                display.classList.add('border-green-400', 'drop-shadow-[0_0_10px_#2ecc71]');
+                addXP(40);
+            }
+        }
+
+        function renderSentence() {
+            document.getElementById('sentence-display').innerText = selectedWords.map(sw => sw.word).join(" ");
+        }
+
+        function resetWordBank() {
+            selectedWords.forEach(sw => sw.btn.classList.remove('hidden-word'));
+            selectedWords = [];
+            renderSentence();
+            const display = document.getElementById('sentence-display');
+            display.classList.replace('text-green-400', 'text-flashlight');
+            display.classList.remove('border-green-400', 'drop-shadow-[0_0_10px_#2ecc71]');
+        }
+
+        // --- SHADOW WORD GAME (FIND THE MISTAKE) ---
+        function checkShadow(btn, isMistake) {
+            if(isMistake) {
+                btn.innerText = btn.getAttribute('data-correct');
+                btn.classList.add('burned');
+                btn.classList.remove('shadow-word');
+                addXP(40);
+            } else {
+                btn.classList.add('wrong');
+                setTimeout(() => btn.classList.remove('wrong'), 500);
+            }
+        }
+
+        // --- RPG & QUIZ SELECT ---
+        function checkAnswer(btn, isCorrect) {
+            const siblings = btn.parentElement.children;
+            for(let s of siblings) {
+                s.classList.remove('bg-flashlight', 'text-black', 'bg-horrorRed', 'text-white');
+                s.classList.add('bg-black/60', 'text-gray-300');
+            }
+            if(isCorrect) {
+                btn.classList.replace('bg-black/60', 'bg-flashlight');
+                btn.classList.replace('text-gray-300', 'text-black');
+                addXP(30);
+            } else {
+                btn.classList.replace('bg-black/60', 'bg-horrorRed');
+                btn.classList.replace('text-gray-300', 'text-white');
+            }
+        }
+
+        function rpgSelect(btn, isCorrect) {
+            checkAnswer(btn, isCorrect);
+            if(isCorrect) addXP(50);
+        }
+
+        function selectStance(btn) {
+            const siblings = btn.parentElement.children;
+            for(let s of siblings) {
+                s.classList.remove('bg-flashlight', 'text-black', 'bg-horrorRed', 'text-white');
+                s.classList.add('bg-black/60', 'text-gray-400');
+            }
+            if(btn.dataset.stance.includes('agree') && !btn.dataset.stance.includes('disagree')) {
+                 btn.classList.replace('bg-black/60', 'bg-flashlight');
+                 btn.classList.replace('text-gray-400', 'text-black');
+            } else {
+                 btn.classList.replace('bg-black/60', 'bg-horrorRed');
+                 btn.classList.replace('text-gray-400', 'text-white');
+            }
+            document.getElementById('stance-followup').classList.remove('hidden');
+            addXP(30);
+        }
+
+        // --- FLASHLIGHT CURSOR ---
+        let lightOn = true;
+        function toggleLight() {
+            lightOn = !lightOn;
+            document.getElementById('flashlight-overlay').style.opacity = lightOn ? '1' : '0';
+        }
+
+        window.addEventListener('mousemove', e => {
+            if(lightOn) {
+                document.documentElement.style.setProperty('--cursor-x', e.clientX + 'px');
+                document.documentElement.style.setProperty('--cursor-y', e.clientY + 'px');
+            }
+        });
+
+        window.addEventListener('DOMContentLoaded', () => { updateProgress(); });
+    </script>
+</body>
+</html>
